@@ -12,17 +12,21 @@ export async function uploadFloorplan(file) {
     const errJSON = await resp.json().catch(() => ({}));
     throw new Error(errJSON.detail || "Upload failed");
   }
-  return resp.json(); // { image_b64: "...", resized_shape: [h, w] }
+  return resp.json(); 
 }
 
 export async function fetchHeatmap(x, y) {
-  const resp = await fetch("http://localhost:8000/heatmap", {
+  const resp = await fetch(`${API_URL}/heatmap`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ x, y }),
   });
-  if (!resp.ok) throw new Error("Heatmap failed");
-  return resp.blob();
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(text || `Heatmap error: ${resp.status}`);
+  }
+  const blob = await resp.blob();
+  return URL.createObjectURL(blob);
 }
 
 export async function getBestRouter(sampleCount = 30) {
@@ -34,5 +38,5 @@ export async function getBestRouter(sampleCount = 30) {
     const errJSON = await resp.json().catch(() => ({}));
     throw new Error(errJSON.detail || "Best router failed");
   }
-  return resp.json(); // { best_point: {row, col}, average_cost: ... }
+  return resp.json();
 }

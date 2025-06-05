@@ -2,7 +2,7 @@ import React, { useState, useRef } from "react";
 import {uploadFloorplan, fetchHeatmap, getBestRouter,} from "./api";
 import FloorplanCanvas from "./FloorplanCanvas";  
 
-function App() { 
+export default function App() { 
   const fileInputRef = useRef(null);
   const [imageB64, setImageB64] = useState(null); 
   const [dims, setDims] = useState(null);
@@ -24,31 +24,24 @@ function App() {
     }
   };
 
-  async function handleCanvasClick(x, y) {
-  try {
-    const resp = await fetch("http://localhost:8000/heatmap", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ x, y }),
-    });
-    if (!resp.ok) {
-      const err = await resp.json().catch(() => ({}));
-      throw new Error(err.detail || "Heatmap request failed");
+  const handleCanvasClick = async (x, y) => {
+    if (!dims) return; 
+    try {
+      const url = await fetchHeatmap(x, y);
+      setHeatmapUrl(url); 
+    } catch (err) {
+      alert("Heatmap request failed:\n" + err.message);
     }
-    const blob = await resp.blob();
-    const url = URL.createObjectURL(blob);
-    setHeatmapUrl(url); 
-  } catch (err) {
-    alert("Heatmap error:\n" + err.message);
-  }
-}
+  };
 
   const handleFindBest = async () => {
     if (!dims) return;
     try {
-      const { best_point } = await getBestRouter(50);
-      const blob = await fetchHeatmap(best_point.col, best_point.row);
-      const url = URL.createObjectURL(blob);
+      const data = await getBestRouter(50);
+      const { best_point } = data;
+      const r = best_point.row;
+      const c = best_point.col;
+      const url = await fetchHeatmap(c, r);
       setHeatmapUrl(url);
     } catch (err) {
       alert("Best Router failed:\n" + err.message);
@@ -77,7 +70,7 @@ function App() {
               imageB64={imageB64}
               dims={dims}
               heatmapUrl={heatmapUrl}
-              onClick={handleCanvasClick}
+              onCanvasClick={handleCanvasClick}
             />
           </div>
         </>
@@ -85,5 +78,3 @@ function App() {
     </div>
   );
 }
-
-export default App;
