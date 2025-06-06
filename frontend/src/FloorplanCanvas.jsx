@@ -1,60 +1,99 @@
 import React, { useEffect, useRef } from "react";
 
-export default function FloorplanCanvas({ imageB64, dims, heatmapUrl, onCanvasClick }) {
+export default function FloorplanCanvas({
+  imageB64,
+  dims,         // [origHeight, origWidth]
+  heatmapUrl,
+  onCanvasClick,
+}) {
   const canvasRef = useRef(null);
   const overlayRef = useRef(null);
 
-  // floorplan image
+  // Max bounding box for display
+  const MAX_SIZE = 512;
+
+  // Calculate display dimensions while preserving aspect ratio
+  let displayWidth = MAX_SIZE;
+  let displayHeight = MAX_SIZE;
+  if (dims) {
+    const [origH, origW] = dims;
+    if (origW > origH) {
+      displayHeight = Math.round((origH / origW) * MAX_SIZE);
+    } else {
+      displayWidth = Math.round((origW / origH) * MAX_SIZE);
+    }
+  }
+
+  // Draw the floorplan image onto the canvas, scaled
   useEffect(() => {
     if (!imageB64 || !dims) return;
-    const [h, w] = dims;
+    const [origH, origW] = dims;
     const c = canvasRef.current;
+    c.width = displayWidth;
+    c.height = displayHeight;
     const ctx = c.getContext("2d");
-    c.width = w;
-    c.height = h;
+
     const img = new Image();
     img.onload = () => {
-      ctx.clearRect(0, 0, w, h);
-      ctx.drawImage(img, 0, 0, w, h);
+      ctx.clearRect(0, 0, displayWidth, displayHeight);
+      ctx.drawImage(img, 0, 0, displayWidth, displayHeight);
     };
     img.src = `data:image/png;base64,${imageB64}`;
-  }, [imageB64, dims]);
+  }, [imageB64, dims, displayWidth, displayHeight]);
 
-  // heatmap overlay
+  // Draw the heatmap overlay, scaled to match the displayed floorplan
   useEffect(() => {
     if (!dims) return;
-    const [h, w] = dims;
     const c = overlayRef.current;
+    c.width = displayWidth;
+    c.height = displayHeight;
     const ctx = c.getContext("2d");
-    c.width = w;
-    c.height = h;
+
     if (heatmapUrl) {
       const img = new Image();
       img.onload = () => {
-        ctx.clearRect(0, 0, w, h);
+        ctx.clearRect(0, 0, displayWidth, displayHeight);
         ctx.globalAlpha = 0.6;
-        ctx.drawImage(img, 0, 0, w, h);
+        ctx.drawImage(img, 0, 0, displayWidth, displayHeight);
         ctx.globalAlpha = 1.0;
       };
       img.src = heatmapUrl;
     } else {
-      ctx.clearRect(0, 0, w, h);
+      ctx.clearRect(0, 0, displayWidth, displayHeight);
     }
-  }, [heatmapUrl, dims]);
+  }, [heatmapUrl, dims, displayWidth, displayHeight]);
 
-  // user clicks on floorplan
+  // Handle user clicks: map back to original image coordinates
   const handleClick = (e) => {
     if (!dims) return;
-    const [h, w] = dims;
+    const [origH, origW] = dims;
     const rect = e.target.getBoundingClientRect();
-    const x = Math.floor(e.clientX - rect.left);
-    const y = Math.floor(e.clientY - rect.top);
-    onCanvasClick(x, y); 
+
+    // Click position in displayed (scaled) canvas space
+    const rawX = e.clientX - rect.left;
+    const rawY = e.clientY - rect.top;
+
+    // Scale factors from displayed size back to original image size
+    const scaleX = origW / displayWidth;
+    const scaleY = origH / displayHeight;
+
+    // Map to original image coordinates
+    const x = Math.floor(rawX * scaleX);
+    const y = Math.floor(rawY * scaleY);
+
+    onCanvasClick(x, y);
   };
 
   return (
-    <div style={{ position: "relative", display: "inline-block" }}>
-      {/* floorplan */}
+    <div
+      style={{
+        position: "relative",
+        width: displayWidth,
+        height: displayHeight,
+        margin: "0 auto",
+      }}
+    >
+      {/* Floorplan canvas */}
       <canvas
         ref={canvasRef}
         onClick={handleClick}
@@ -65,9 +104,11 @@ export default function FloorplanCanvas({ imageB64, dims, heatmapUrl, onCanvasCl
           cursor: "crosshair",
           zIndex: 1,
         }}
+        width={displayWidth}
+        height={displayHeight}
       />
 
-      {/* heatmap */}
+      {/* Heatmap overlay canvas */}
       <canvas
         ref={overlayRef}
         style={{
@@ -77,7 +118,15 @@ export default function FloorplanCanvas({ imageB64, dims, heatmapUrl, onCanvasCl
           pointerEvents: "none",
           zIndex: 2,
         }}
+        width={displayWidth}
+        height={displayHeight}
       />
     </div>
   );
 }
+
+
+
+
+
+

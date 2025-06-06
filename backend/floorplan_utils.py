@@ -5,11 +5,13 @@ import numpy as np
 from skimage.graph import MCP_Geometric
 from PIL import Image
 
-def preprocess_image(image_bytes: bytes, target_dim: int = 300):
+TARGET_DIM = 300
+
+def preprocess_image(image_bytes: bytes, target_dim: int = TARGET_DIM):
     arr = np.frombuffer(image_bytes, dtype=np.uint8)
     img_bgr = cv2.imdecode(arr, cv2.IMREAD_COLOR)
     if img_bgr is None:
-        raise ValueError("Could not decode image. Make sure it’s a valid PNG/JPG.")
+        raise ValueError("Could not decode image. Make sure it's a valid PNG/JPG.")
     gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
 
     inv = cv2.bitwise_not(gray)

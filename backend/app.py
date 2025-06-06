@@ -11,7 +11,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from floorplan_utils import preprocess_image, compute_heatmap, costs_to_png
+from floorplan_utils import preprocess_image, compute_heatmap, costs_to_png, TARGET_DIM
 
 app = Flask(__name__)
 CORS(app, origins=["http://localhost:3000"]) 
@@ -90,7 +90,7 @@ def heatmap():
 
 @app.route("/best-router", methods=["POST"])
 def best_router():
-    sc_str = request.args.get("sample_count", default="30")
+    sc_str = request.args.get("sample_count", default = str(TARGET_DIM//4))
     try:
         sample_count = int(sc_str)
     except ValueError:

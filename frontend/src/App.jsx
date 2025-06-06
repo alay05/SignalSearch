@@ -48,27 +48,42 @@ export default function App() {
     }
   };
 
+  const handleReset = () => {
+    setHeatmapUrl(null);
+  };
+
   return (
-    <div style={{ padding: 20 }}>
+    <div style={{ textAlign: "center", padding: "40px 20px" }}>
       <h2>Wi-Fi Router Optimizer</h2>
-      <input
-        type="file"
-        ref={fileInputRef}
-        accept="image/*"
-        style={{ marginRight: 10 }}
-      />
-      <button onClick={handleUploadFloorplan}>
-        Upload Floorplan
-      </button>
+
+      <div style={{ marginTop: 20 }}>
+        <input
+          type="file"
+          ref={fileInputRef}
+          accept="image/*"
+          style={{ marginBottom: 10 }}
+        />
+        <br />
+        <button onClick={handleUploadFloorplan}>Upload Floorplan</button>
+      </div>
+
       {imageB64 && dims && (
         <>
-          <button onClick={handleFindBest} style={{ marginLeft: 10 }}>
-            Find Best Router
-          </button>
           <div style={{ marginTop: 20 }}>
+            <button onClick={handleFindBest}>Find Best Router</button>
+            <button onClick={handleReset} style={{ marginLeft: 10 }}>Reset</button>
+          </div>
+
+          <div
+            style={{
+              marginTop: 30,
+              display: "flex",
+              justifyContent: "center",
+            }}
+          >
             <FloorplanCanvas
               imageB64={imageB64}
-              dims={dims}
+              dims={dims} 
               heatmapUrl={heatmapUrl}
               onCanvasClick={handleCanvasClick}
             />
