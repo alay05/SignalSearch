@@ -1,12 +1,14 @@
 import React, { useState, useRef } from "react";
-import {uploadFloorplan, fetchHeatmap, getBestRouter,} from "./api";
-import FloorplanCanvas from "./FloorplanCanvas";  
+import { uploadFloorplan, fetchHeatmap, getBestRouter } from "./api";
+import FloorplanCanvas from "./FloorplanCanvas";
 
-export default function App() { 
+export default function App() {
   const fileInputRef = useRef(null);
-  const [imageB64, setImageB64] = useState(null); 
+  const [imageB64, setImageB64] = useState(null);
   const [dims, setDims] = useState(null);
   const [heatmapUrl, setHeatmapUrl] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [bestPoint, setBestPoint] = useState(null);
 
   const handleUploadFloorplan = async () => {
     const file = fileInputRef.current.files[0];
@@ -19,16 +21,18 @@ export default function App() {
       setImageB64(image_b64);
       setDims(resized_shape);
       setHeatmapUrl(null);
+      setBestPoint(null);
     } catch (err) {
       alert("Upload failed:\n" + err.message);
     }
   };
 
   const handleCanvasClick = async (x, y) => {
-    if (!dims) return; 
+    if (!dims || loading) return;
     try {
       const url = await fetchHeatmap(x, y);
-      setHeatmapUrl(url); 
+      setHeatmapUrl(url);
+      setBestPoint([y, x]); 
     } catch (err) {
       alert("Heatmap request failed:\n" + err.message);
     }
@@ -36,6 +40,7 @@ export default function App() {
 
   const handleFindBest = async () => {
     if (!dims) return;
+    setLoading(true);
     try {
       const data = await getBestRouter(50);
       const { best_point } = data;
@@ -43,13 +48,17 @@ export default function App() {
       const c = best_point.col;
       const url = await fetchHeatmap(c, r);
       setHeatmapUrl(url);
+      setBestPoint([r, c]); 
     } catch (err) {
       alert("Best Router failed:\n" + err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleReset = () => {
     setHeatmapUrl(null);
+    setBestPoint(null);
   };
 
   return (
@@ -70,22 +79,28 @@ export default function App() {
       {imageB64 && dims && (
         <>
           <div style={{ marginTop: 20 }}>
-            <button onClick={handleFindBest}>Find Best Router</button>
-            <button onClick={handleReset} style={{ marginLeft: 10 }}>Reset</button>
+            <button onClick={handleFindBest} disabled={loading}>
+              {loading ? "Loading..." : "Find Best Router"}
+            </button>
+            <button onClick={handleReset} style={{ marginLeft: 10 }} disabled={loading}>
+              Reset
+            </button>
           </div>
 
-          <div
-            style={{
-              marginTop: 30,
-              display: "flex",
-              justifyContent: "center",
-            }}
-          >
+          {loading && (
+            <p style={{ marginTop: 10, fontStyle: "italic" }}>
+              Finding best router position...
+            </p>
+          )}
+
+          <div style={{ marginTop: 30, display: "flex", justifyContent: "center" }}>
             <FloorplanCanvas
               imageB64={imageB64}
-              dims={dims} 
+              dims={dims}
               heatmapUrl={heatmapUrl}
               onCanvasClick={handleCanvasClick}
+              disabled={loading}
+              bestPoint={bestPoint}
             />
           </div>
         </>
